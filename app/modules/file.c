@@ -5,9 +5,9 @@
 #include "lmem.h"
 #include "platform.h"
 
-#include "c_types.h"
+#include <stdint.h>
 #include "vfs.h"
-#include "c_string.h"
+#include <string.h>
 
 #include <alloca.h>
 
@@ -126,15 +126,16 @@ static int file_close( lua_State* L )
     ud = (file_fd_ud *)luaL_checkudata(L, 1, "file.obj");
   }
 
-  // unref default file descriptor
-  luaL_unref( L, LUA_REGISTRYINDEX, file_fd_ref );
-  file_fd_ref = LUA_NOREF;
-
   if(ud->fd){
       vfs_close(ud->fd);
       // mark as closed
       ud->fd = 0;
   }
+
+  // unref default file descriptor
+  luaL_unref( L, LUA_REGISTRYINDEX, file_fd_ref );
+  file_fd_ref = LUA_NOREF;
+
   return 0;
 }
 
@@ -189,7 +190,7 @@ static int file_open( lua_State* L )
 
   const char *fname = luaL_checklstring( L, 1, &len );
   const char *basename = vfs_basename( fname );
-  luaL_argcheck(L, c_strlen(basename) <= FS_OBJ_NAME_LEN && c_strlen(fname) == len, 1, "filename invalid");
+  luaL_argcheck(L, strlen(basename) <= FS_OBJ_NAME_LEN && strlen(fname) == len, 1, "filename invalid");
 
   const char *mode = luaL_optstring(L, 2, "r");
 
@@ -302,7 +303,7 @@ static int file_exists( lua_State* L )
   size_t len;
   const char *fname = luaL_checklstring( L, 1, &len );
   const char *basename = vfs_basename( fname );
-  luaL_argcheck(L, c_strlen(basename) <= FS_OBJ_NAME_LEN && c_strlen(fname) == len, 1, "filename invalid");
+  luaL_argcheck(L, strlen(basename) <= FS_OBJ_NAME_LEN && strlen(fname) == len, 1, "filename invalid");
 
   struct vfs_stat stat;
   lua_pushboolean(L, vfs_stat((char *)fname, &stat) == VFS_RES_OK ? 1 : 0);
@@ -316,7 +317,7 @@ static int file_remove( lua_State* L )
   size_t len;
   const char *fname = luaL_checklstring( L, 1, &len );
   const char *basename = vfs_basename( fname );
-  luaL_argcheck(L, c_strlen(basename) <= FS_OBJ_NAME_LEN && c_strlen(fname) == len, 1, "filename invalid");
+  luaL_argcheck(L, strlen(basename) <= FS_OBJ_NAME_LEN && strlen(fname) == len, 1, "filename invalid");
   vfs_remove((char *)fname);
   return 0;
 }
@@ -342,11 +343,11 @@ static int file_rename( lua_State* L )
 
   const char *oldname = luaL_checklstring( L, 1, &len );
   const char *basename = vfs_basename( oldname );
-  luaL_argcheck(L, c_strlen(basename) <= FS_OBJ_NAME_LEN && c_strlen(oldname) == len, 1, "filename invalid");
+  luaL_argcheck(L, strlen(basename) <= FS_OBJ_NAME_LEN && strlen(oldname) == len, 1, "filename invalid");
 
   const char *newname = luaL_checklstring( L, 2, &len );
   basename = vfs_basename( newname );
-  luaL_argcheck(L, c_strlen(basename) <= FS_OBJ_NAME_LEN && c_strlen(newname) == len, 2, "filename invalid");
+  luaL_argcheck(L, strlen(basename) <= FS_OBJ_NAME_LEN && strlen(newname) == len, 2, "filename invalid");
 
   if(0 <= vfs_rename( oldname, newname )){
     lua_pushboolean(L, 1);
@@ -361,7 +362,7 @@ static int file_stat( lua_State* L )
 {
   size_t len;
   const char *fname = luaL_checklstring( L, 1, &len );
-  luaL_argcheck( L, c_strlen(fname) <= FS_OBJ_NAME_LEN && c_strlen(fname) == len, 1, "filename invalid" );
+  luaL_argcheck( L, strlen(fname) <= FS_OBJ_NAME_LEN && strlen(fname) == len, 1, "filename invalid" );
 
   struct vfs_stat stat;
   if (vfs_stat( (char *)fname, &stat ) != VFS_RES_OK) {
@@ -431,7 +432,7 @@ static int file_g_read( lua_State* L, int n, int16_t end_char, int fd )
   luaL_buffinit(L, &b);
 
   for (j = 0; j < n; j += sizeof(p)) {
-    int nwanted = (j <= n - sizeof(p)) ? sizeof(p) : n - j;
+    int nwanted = (n - j >= sizeof(p)) ? sizeof(p) : n - j;
     int nread   = vfs_read(fd, p, nwanted);
 
     if (nread == VFS_RES_ERR || nread == 0) {
@@ -456,7 +457,7 @@ static int file_g_read( lua_State* L, int n, int16_t end_char, int fd )
 }
 
 // Lua: read()
-// file.read() will read FILE_READ_CHUNK bytes, or EOF is reached.
+// file.read() will read FILE _CHUNK bytes, or EOF is reached.
 // file.read(10) will read 10 byte from file, or EOF is reached.
 // file.read('q') will read until 'q' or EOF is reached.
 static int file_read( lua_State* L )
@@ -644,64 +645,76 @@ static int file_vol_umount( lua_State *L )
 }
 
 
-static const LUA_REG_TYPE file_obj_map[] =
-{
-  { LSTRKEY( "close" ),     LFUNCVAL( file_close ) },
-  { LSTRKEY( "read" ),      LFUNCVAL( file_read ) },
-  { LSTRKEY( "readline" ),  LFUNCVAL( file_readline ) },
-  { LSTRKEY( "write" ),     LFUNCVAL( file_write ) },
-  { LSTRKEY( "writeline" ), LFUNCVAL( file_writeline ) },
-  { LSTRKEY( "seek" ),      LFUNCVAL( file_seek ) },
-  { LSTRKEY( "flush" ),     LFUNCVAL( file_flush ) },
-  { LSTRKEY( "__gc" ),      LFUNCVAL( file_obj_free ) },
-  { LSTRKEY( "__index" ),   LROVAL( file_obj_map ) },
-  { LNILKEY, LNILVAL }
-};
+LROT_BEGIN(file_obj)
+  LROT_FUNCENTRY( close, file_close )
+  LROT_FUNCENTRY( read, file_read )
+  LROT_FUNCENTRY( readline, file_readline )
+  LROT_FUNCENTRY( write, file_write )
+  LROT_FUNCENTRY( writeline, file_writeline )
+  LROT_FUNCENTRY( seek, file_seek )
+  LROT_FUNCENTRY( flush, file_flush )
+  LROT_FUNCENTRY( __gc, file_obj_free )
+  LROT_TABENTRY( __index, file_obj )
+LROT_END( file_obj, file_obj, LROT_MASK_GC_INDEX )
 
-static const LUA_REG_TYPE file_vol_map[] =
-{
-  { LSTRKEY( "umount" ),   LFUNCVAL( file_vol_umount )},
-  //{ LSTRKEY( "getfree" ),  LFUNCVAL( file_vol_getfree )},
-  //{ LSTRKEY( "getlabel" ), LFUNCVAL( file_vol_getlabel )},
-  //{ LSTRKEY( "__gc" ),     LFUNCVAL( file_vol_free ) },
-  { LSTRKEY( "__index" ),  LROVAL( file_vol_map ) },
-  { LNILKEY, LNILVAL }
-};
+
+LROT_BEGIN(file_vol)
+  LROT_FUNCENTRY( umount, file_vol_umount )
+  //  LROT_FUNCENTRY( getfree, file_vol_getfree )
+  //  LROT_FUNCENTRY( getlabel, file_vol_getlabel )
+  //  LROT_FUNCENTRY( __gc, file_vol_free )
+  LROT_TABENTRY( __index, file_vol )
+LROT_END( file_vol, file_vol, LROT_MASK_GC_INDEX )
+
+#ifdef BUILD_SPIFFS
+#define LROT_FUNCENTRY_S(n,f) LROT_FUNCENTRY(n,f)
+#else
+#define LROT_FUNCENTRY_S(n,f) 
+#endif
+#ifdef BUILD_FATFS
+#define LROT_FUNCENTRY_F(n,f) LROT_FUNCENTRY(n,f)
+#else
+#define LROT_FUNCENTRY_F(n,f) 
+#endif
 
 // Module function map
-static const LUA_REG_TYPE file_map[] = {
-  { LSTRKEY( "list" ),      LFUNCVAL( file_list ) },
-  { LSTRKEY( "open" ),      LFUNCVAL( file_open ) },
-  { LSTRKEY( "close" ),     LFUNCVAL( file_close ) },
-  { LSTRKEY( "write" ),     LFUNCVAL( file_write ) },
-  { LSTRKEY( "writeline" ), LFUNCVAL( file_writeline ) },
-  { LSTRKEY( "read" ),      LFUNCVAL( file_read ) },
-  { LSTRKEY( "readline" ),  LFUNCVAL( file_readline ) },
-#ifdef BUILD_SPIFFS
-  { LSTRKEY( "format" ),    LFUNCVAL( file_format ) },
-  { LSTRKEY( "fscfg" ),     LFUNCVAL( file_fscfg ) },
-#endif
-  { LSTRKEY( "remove" ),    LFUNCVAL( file_remove ) },
-  { LSTRKEY( "seek" ),      LFUNCVAL( file_seek ) },
-  { LSTRKEY( "flush" ),     LFUNCVAL( file_flush ) },
-  { LSTRKEY( "rename" ),    LFUNCVAL( file_rename ) },
-  { LSTRKEY( "exists" ),    LFUNCVAL( file_exists ) },
-  { LSTRKEY( "getcontents" ), LFUNCVAL( file_getfile ) },
-  { LSTRKEY( "putcontents" ), LFUNCVAL( file_putfile ) },
-  { LSTRKEY( "fsinfo" ),    LFUNCVAL( file_fsinfo ) },
-  { LSTRKEY( "on" ),        LFUNCVAL( file_on ) },
-  { LSTRKEY( "stat" ),      LFUNCVAL( file_stat ) },
-#ifdef BUILD_FATFS
-  { LSTRKEY( "mount" ),     LFUNCVAL( file_mount ) },
-  { LSTRKEY( "chdir" ),     LFUNCVAL( file_chdir ) },
-#endif
-  { LNILKEY, LNILVAL }
-};
+LROT_BEGIN(file)
+  LROT_FUNCENTRY( list, file_list )
+  LROT_FUNCENTRY( open, file_open )
+  LROT_FUNCENTRY( close, file_close )
+  LROT_FUNCENTRY( write, file_write )
+  LROT_FUNCENTRY( writeline, file_writeline )
+  LROT_FUNCENTRY( read, file_read )
+  LROT_FUNCENTRY( readline, file_readline )
+  LROT_FUNCENTRY_S( format, file_format )
+  LROT_FUNCENTRY_S( fscfg, file_fscfg )
+  LROT_FUNCENTRY( remove, file_remove )
+  LROT_FUNCENTRY( seek, file_seek )
+  LROT_FUNCENTRY( flush, file_flush )
+  LROT_FUNCENTRY( rename, file_rename )
+  LROT_FUNCENTRY( exists, file_exists )
+  LROT_FUNCENTRY( getcontents, file_getfile )
+  LROT_FUNCENTRY( putcontents, file_putfile )
+  LROT_FUNCENTRY( fsinfo, file_fsinfo )
+  LROT_FUNCENTRY( on, file_on )
+  LROT_FUNCENTRY( stat, file_stat )
+  LROT_FUNCENTRY_F( mount, file_mount )
+  LROT_FUNCENTRY_F( chdir, file_chdir )
+LROT_END( file, NULL, 0 )
+
 
 int luaopen_file( lua_State *L ) {
-  luaL_rometatable( L, "file.vol",  (void *)file_vol_map );
-  luaL_rometatable( L, "file.obj",  (void *)file_obj_map );
+  if (!vfs_mount("/FLASH", 0)) {
+      // Failed to mount -- try reformat
+      dbg_printf("Formatting file system. Please wait...\n");
+      if (!vfs_format()) {
+          NODE_ERR( "\n*** ERROR ***: unable to format. FS might be compromised.\n" );
+          NODE_ERR( "It is advised to re-flash the NodeMCU image.\n" );
+      }
+  }
+  luaL_rometatable( L, "file.vol",  LROT_TABLEREF(file_vol));
+  luaL_rometatable( L, "file.obj",  LROT_TABLEREF(file_obj));
   return 0;
 }
 
-NODEMCU_MODULE(FILE, "file", file_map, luaopen_file);
+NODEMCU_MODULE(FILE, "file", file, luaopen_file);

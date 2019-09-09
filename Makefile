@@ -9,27 +9,35 @@ TOP_DIR:=$(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 # RELEASE = lastest pulls the latest V3.0.0 branch version as at the issue of this make
 # otherwise it pulls the labelled version in the SDK version's release directory
 #
-ifeq ("$(RELEASE)","latest")
-  export RELEASE:=$(RELEASE)
-  SDK_VER        := 3.0.0-dev-190412
-  SDK_COMMIT_SHA1:= 39ec2d4573eb77fda73f6afcf6dd1b3c41e74fcd
-  SDK_FILE_SHA1  := 44f7724490739536526fc4298d6fcc2fa2d29471
-  SDK_ZIP_ROOT   := ESP8266_NONOS_SDK-$(SDK_COMMIT_SHA1)
-  SDK_FILE_VER   := $(SDK_COMMIT_SHA1)
-else
-  SDK_VER        := 3.0
-  SDK_FILE_SHA1  := 029fc23fe87e03c9852de636490b2d7b9e07f01a
+ifeq ("$(RELEASE)","latest-3.0")
+  SDK_VER        := 3.0.0
+  SDK_FILE_SHA1  := NA
+  SDK_ZIP_ROOT   := ESP8266_NONOS_SDK-release-v$(SDK_VER)
+  SDK_FILE_VER   := release/v$(SDK_VER)
+else ifeq ("$(RELEASE)","master")
+  SDK_VER        := master
+  SDK_FILE_SHA1  := NA
   SDK_ZIP_ROOT   := ESP8266_NONOS_SDK-$(SDK_VER)
-  SDK_FILE_VER   := v$(SDK_VER)
+  SDK_FILE_VER   := $(SDK_VER)
+else
+# SDK_VER        := 3.0
+# SDK_FILE_VER   := v$(SDK_VER)
+  SDK_FILE_VER   := e4434aa730e78c63040ace360493aef420ec267c
+  SDK_VER        := 3.0-e4434aa
+  SDK_FILE_SHA1  := ac6528a6a206d3d4c220e4035ced423eb314cfbf
+  SDK_ZIP_ROOT   := ESP8266_NONOS_SDK-$(SDK_FILE_VER)
 endif
 SDK_REL_DIR      := sdk/esp_iot_sdk_v$(SDK_VER)
 SDK_DIR          := $(TOP_DIR)/$(SDK_REL_DIR)
+APP_DIR          := $(TOP_DIR)/app
 
 ESPTOOL_VER := 2.6
 
-# Ensure that the Espresif SDK is searched before the tool-chain's SDK (if any)
-CCFLAGS:= -I$(TOP_DIR)/sdk-overrides/include -I$(TOP_DIR)/app/include/lwip/app -I$(SDK_DIR)/include
-LDFLAGS:= -L$(SDK_DIR)/lib -L$(SDK_DIR)/ld $(LDFLAGS)
+# Ensure that the Espresif SDK is search before application paths and also prevent
+# the SDK's c_types.h from being included from anywhere, by predefining its include-guard.
+
+CCFLAGS :=  $(CCFLAGS) -I $(PDIR)sdk-overrides/include -I $(SDK_DIR)/include -D_C_TYPES_H_
+LDFLAGS := -L$(SDK_DIR)/lib -L$(SDK_DIR)/ld $(LDFLAGS)
 
 ifdef DEBUG
   CCFLAGS += -ggdb -O0
@@ -54,18 +62,18 @@ else
 endif  # $(V)==1
 
 ifndef BAUDRATE
-	BAUDRATE=115200
+  BAUDRATE=115200
 endif
 
 #############################################################
 # Select compile
 #
-#  ** HEALTH WARNING ** This section is largely legacy directives left over from 
+#  ** HEALTH WARNING ** This section is largely legacy directives left over from
 #  an Espressif template.  As far as I (TerrryE) know, we've only used the Linux
 #  Path. I have successfully build AMD and Intel (both x86, AMD64) and RPi ARM6
 #  all under Ubuntu.  Our docker container runs on Windows in an Ubuntu VM.
 #  Johny Mattson maintains a prebuild AMD64 xtensa cross-compile gcc v4.8.5
-#  toolchain which is compatible with the non-OS SDK and can be used on any recent 
+#  toolchain which is compatible with the non-OS SDK and can be used on any recent
 #  Ubuntu version including the Docker and Travis build environments.
 #
 #  You have the option to build your own toolchain and specify a TOOLCHAIN_ROOT
@@ -73,7 +81,7 @@ endif
 #  architecture is compatable then you can omit this variable and the make will
 #  download and use this prebuilt toolchain.
 #
-#  If any developers wish to develop, test and support alternative environments 
+#  If any developers wish to develop, test and support alternative environments
 #  then please raise a GitHub issue on this work.
 #
 
@@ -88,39 +96,39 @@ endif
 
 ifneq (,$(findstring indows,$(OS)))
   #------------ BEGIN UNTESTED ------------ We are not under Linux, e.g.under windows.
-	ifeq ($(XTENSA_CORE),lx106)
-		# It is xcc
-		AR = xt-ar
-		CC = xt-xcc
-		CXX = xt-xcc
-		NM = xt-nm
-		CPP = xt-cpp
-		OBJCOPY = xt-objcopy
-		#MAKE = xt-make
-		CCFLAGS += --rename-section .text=.irom0.text --rename-section .literal=.irom0.literal
-	else
-		# It is gcc, may be cygwin
-		# Can we use -fdata-sections?
-		CCFLAGS += -ffunction-sections -fno-jump-tables -fdata-sections
-		AR = xtensa-lx106-elf-ar
-		CC = xtensa-lx106-elf-gcc
-		CXX = xtensa-lx106-elf-g++
-		NM = xtensa-lx106-elf-nm
-		CPP = xtensa-lx106-elf-cpp
-		OBJCOPY = xtensa-lx106-elf-objcopy
-	endif
-	FIRMWAREDIR = ..\\bin\\
-	ifndef COMPORT
-		ESPPORT = com1
-	else
-		ESPPORT = $(COMPORT)
-	endif
-    ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+  ifeq ($(XTENSA_CORE),lx106)
+    # It is xcc
+    AR = xt-ar
+    CC = xt-xcc
+    CXX = xt-xcc
+    NM = xt-nm
+    CPP = xt-cpp
+    OBJCOPY = xt-objcopy
+    #MAKE = xt-make
+    CCFLAGS += --rename-section .text=.irom0.text --rename-section .literal=.irom0.literal
+  else
+    # It is gcc, may be cygwin
+    # Can we use -fdata-sections?
+    CCFLAGS += -ffunction-sections -fno-jump-tables -fdata-sections
+    AR = xtensa-lx106-elf-ar
+    CC = xtensa-lx106-elf-gcc
+    CXX = xtensa-lx106-elf-g++
+    NM = xtensa-lx106-elf-nm
+    CPP = xtensa-lx106-elf-cpp
+    OBJCOPY = xtensa-lx106-elf-objcopy
+  endif
+  FIRMWAREDIR = ..\\bin\\
+  ifndef COMPORT
+    ESPPORT = com1
+  else
+    ESPPORT = $(COMPORT)
+  endif
+  ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
 # ->AMD64
-    endif
-    ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+  endif
+  ifeq ($(PROCESSOR_ARCHITECTURE),x86)
 # ->IA32
-    endif
+  endif
   #---------------- END UNTESTED ---------------- We are under windows.
 else
   # We are under other system, may be Linux. Assume using gcc.
@@ -134,23 +142,23 @@ else
       TOOLCHAIN_ROOT    = $(TOP_DIR)/tools/toolchains/esp8266-$(GCCTOOLCHAIN)
       GITHUB_TOOLCHAIN  = https://github.com/jmattsson/esp-toolchains
       export PATH:=$(PATH):$(TOOLCHAIN_ROOT)/bin
-  	endif
-	endif
-	
-	ifndef COMPORT
-		ESPPORT = /dev/ttyUSB0
-	else
-		ESPPORT = $(COMPORT)
-	endif
+    endif
+  endif
 
-	CCFLAGS += -ffunction-sections -fno-jump-tables -fdata-sections
-	AR      = xtensa-lx106-elf-ar
-	CC      = $(WRAPCC) xtensa-lx106-elf-gcc
-	CXX     = $(WRAPCC) xtensa-lx106-elf-g++
-	NM      = xtensa-lx106-elf-nm
-	CPP     = $(WRAPCC) xtensa-lx106-elf-gcc -E
-	OBJCOPY = xtensa-lx106-elf-objcopy
-	FIRMWAREDIR = ../bin/
+  ifndef COMPORT
+    ESPPORT = /dev/ttyUSB0
+  else
+    ESPPORT = $(COMPORT)
+  endif
+
+  CCFLAGS += -ffunction-sections -fno-jump-tables -fdata-sections
+  AR      = xtensa-lx106-elf-ar
+  CC      = $(WRAPCC) xtensa-lx106-elf-gcc
+  CXX     = $(WRAPCC) xtensa-lx106-elf-g++
+  NM      = xtensa-lx106-elf-nm
+  CPP     = $(WRAPCC) xtensa-lx106-elf-gcc -E
+  OBJCOPY = xtensa-lx106-elf-objcopy
+  FIRMWAREDIR = ../bin/
   WGET = wget --tries=10 --timeout=15 --waitretry=30 --read-timeout=20 --retry-connrefused
 endif
 
@@ -214,7 +222,7 @@ CCFLAGS += 			\
 	-fno-inline-functions	\
 	-nostdlib       \
 	-mlongcalls	\
-	-mtext-section-literals
+	-mtext-section-literals \
 #	-Wall
 
 CFLAGS = $(CCFLAGS) $(DEFINES) $(EXTRA_CCFLAGS) $(STD_CFLAGS) $(INCLUDES)
@@ -266,7 +274,7 @@ endif # TARGET
 #
 
 ifndef TARGET
-all: toolchain sdk_pruned pre_build .subdirs
+all: toolchain sdk_pruned pre_build buildinfo .subdirs
 else
 all: .subdirs $(OBJS) $(OLIBS) $(OIMAGES) $(OBINS) $(SPECIAL_MKTARGETS)
 endif
@@ -314,10 +322,10 @@ $(TOP_DIR)/sdk/.extracted-$(SDK_VER): $(TOP_DIR)/cache/$(SDK_FILE_VER).zip
 	(cd "$(dir $@)" && \
 	 rm -fr esp_iot_sdk_v$(SDK_VER) ESP8266_NONOS_SDK-* && \
 	 unzip $(TOP_DIR)/cache/$(SDK_FILE_VER).zip \
-	       '$(SDK_ZIP_ROOT)/lib/*' \
-	       '$(SDK_ZIP_ROOT)/ld/*.v6.ld' \
-	       '$(SDK_ZIP_ROOT)/include/*' \
-	       '$(SDK_ZIP_ROOT)/bin/esp_init_data_default_v05.bin' \
+	       '*/lib/*' \
+	       '*/ld/*.v6.ld' \
+	       '*/include/*' \
+	       '*/bin/esp_init_data_default_v05.bin' \
 	)
 	mv $(dir $@)/$(SDK_ZIP_ROOT) $(dir $@)/esp_iot_sdk_v$(SDK_VER)
 	touch $@
@@ -334,7 +342,7 @@ $(TOP_DIR)/cache/$(SDK_FILE_VER).zip:
 	mkdir -p "$(dir $@)"
 	$(summary) WGET $(patsubst $(TOP_DIR)/%,%,$@)
 	$(WGET) $(GITHUB_SDK)/archive/$(SDK_FILE_VER).zip -O $@ || { rm -f "$@"; exit 1; }
-	(echo "$(SDK_FILE_SHA1)  $@" | sha1sum -c -) || { rm -f "$@"; exit 1; }
+	if test "$(SDK_FILE_SHA1)" != "NA"; then echo "$(SDK_FILE_SHA1)  $@" | sha1sum -c - || { rm -f "$@"; exit 1; }; fi
 
 clean:
 	$(foreach d, $(SUBDIRS), $(MAKE) -C $(d) clean;)
@@ -363,7 +371,7 @@ flash1m-dout:
 
 flashinternal:
 ifndef PDIR
-	$(MAKE) -C ./app flashinternal
+	$(MAKE) -C $(APP_DIR) flashinternal
 else
 	$(ESPTOOL) --port $(ESPPORT) --baud $(BAUDRATE) write_flash $(FLASHOPTIONS) 0x00000 $(FIRMWAREDIR)0x00000.bin 0x10000 $(FIRMWAREDIR)0x10000.bin
 endif
@@ -388,21 +396,26 @@ spiffs-image-remove:
 
 spiffs-image: bin/0x10000.bin
 	$(MAKE) -C tools
-
+############ Note: this target needs moving into app/modules make ############
 .PHONY: pre_build
 
 ifneq ($(wildcard $(TOP_DIR)/server-ca.crt),)
-pre_build: $(TOP_DIR)/app/modules/server-ca.crt.h
+pre_build: $(APP_DIR)/modules/server-ca.crt.h
 
-$(TOP_DIR)/app/modules/server-ca.crt.h: $(TOP_DIR)/server-ca.crt
+$(APP_DIR)/modules/server-ca.crt.h: $(TOP_DIR)/server-ca.crt
 	$(summary) MKCERT $(patsubst $(TOP_DIR)/%,%,$<)
-	python $(TOP_DIR)/tools/make_server_cert.py $(TOP_DIR)/server-ca.crt > $(TOP_DIR)/app/modules/server-ca.crt.h
+	python $(TOP_DIR)/tools/make_server_cert.py $(TOP_DIR)/server-ca.crt > $(APP_DIR)/modules/server-ca.crt.h
 
 DEFINES += -DHAVE_SSL_SERVER_CRT=\"server-ca.crt.h\"
 else
 pre_build:
-	@-rm -f $(TOP_DIR)/app/modules/server-ca.crt.h
+	@-rm -f $(APP_DIR)/modules/server-ca.crt.h
 endif
+
+.PHONY: buildinfo
+
+buildinfo:
+	tools/update_buildinfo.sh
 
 ifdef TARGET
 $(OBJODIR)/%.o: %.c
@@ -477,6 +490,5 @@ endif # TARGET
 # Required for each makefile to inherit from the parent
 #
 
-INCLUDES := $(INCLUDES) -I $(PDIR)include -I $(PDIR)include/$(TARGET)
 PDIR := ../$(PDIR)
 sinclude $(PDIR)Makefile

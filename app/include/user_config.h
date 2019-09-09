@@ -244,7 +244,7 @@ extern void luaL_dbgbreak(void);
 #endif
 #endif
 
-#if !defined(LUA_NUMBER_INTEGRAL) && defined (LUA_DWORD_ALIGNED_TVALUES)
+#if !defined(LUA_NUMBER_INTEGRAL) && !defined (LUA_DWORD_ALIGNED_TVALUES)
   #define LUA_PACK_TVALUES
 #else
   #undef LUA_PACK_TVALUES
@@ -254,6 +254,11 @@ extern void luaL_dbgbreak(void);
 #define NODE_DEBUG
 #define COAP_DEBUG
 #endif /* DEVELOP_VERSION */
+
+
+#if !defined(LUA_CROSS_COMPILER) && !defined(dbg_printf)
+extern void dbg_printf(const char *fmt, ...);
+#endif
 
 #ifdef NODE_DEBUG
 #define NODE_DBG dbg_printf
@@ -273,12 +278,7 @@ extern void luaL_dbgbreak(void);
 #define ICACHE_STORE_ATTR __attribute__((aligned(4)))
 #define ICACHE_STRING(x) ICACHE_STRING2(x)
 #define ICACHE_STRING2(x) #x
-#define ICACHE_RAM_ATTR \
-  __attribute__((section(".iram0.text." __FILE__ "." ICACHE_STRING(__LINE__))))
-#define ICACHE_FLASH_RESERVED_ATTR \
-  __attribute__((section(".irom.reserved." __FILE__ "." ICACHE_STRING(__LINE__)),\
-                 used,unused,aligned(INTERNAL_FLASH_SECTOR_SIZE)))
-
+#define ICACHE_RAM_ATTR __attribute__((section(".iram0.text." __FILE__ "." ICACHE_STRING(__LINE__))))
 #ifdef  GPIO_SAFE_NO_INTR_ENABLE
 #define NO_INTR_CODE ICACHE_RAM_ATTR __attribute__ ((noinline))
 #else
