@@ -2,7 +2,21 @@
 
 Most notable branches to mention:
 
-- benchmark
+- [ccount in github.com/fikin/nodemcu-firmware](/github.com/fikin/nodemcu-firmware/tree/ccount)
+- [benchmark in github.com/fikin/nodemcu-firmware](/github.com/fikin/nodemcu-firmware/tree/benchmark)
+
+## ccount
+
+This branch adds a new method to tmr package : `tmr.ccount()` which returns current CPU ticks (CCOUNT register).
+
+And defines a C-macro in platform.h : `CCOUNT_REG` which returns same register value.
+
+These changes are for people who :
+
+- like to work with CPU ticks rather than us (tmr.now)
+- need some ns precision rather than us
+- want to compare c and lua timings without conversion to us
+- want to calculate elapsed time without needing to debounce the 31-bit tmr.now()
 
 ## benchmark
 
@@ -12,11 +26,13 @@ This module offers methods which are timing various esp operations. There are ti
 
 The module is not a normal operations module per se but rather something of testing and learning nature. One would use it mainly when wants to evaluate performance aspects of esp. Being compiled as lua module makes its use rather easy and convenient to run various benchmarks.
 
-It can also be used as code basis for adding new benchmarking methods when developing c-modules.
+The module is compiled by default (LUA_USE_MODULES_BENCHMARK is enabled in user_modules.h).
 
-Module is compiled by default (LUA_USE_MODULES_BENCHMARK is enabled in user_modules.h).
+This module is for people who:
 
-How to use it : follow the instructions below.
+- want to run same performance test on various hardware and compare results
+- want to compare results against other people performing similar tests
+- want to benchmark own functionality and are looking for ready infrastructure code to start with
 
 ## Pulling a branch into own git branch
 
