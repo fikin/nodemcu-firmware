@@ -2,8 +2,8 @@
 
 Most notable branches to mention:
 
-- [ccount in github.com/fikin/nodemcu-firmware](/github.com/fikin/nodemcu-firmware/tree/ccount)
-- [benchmark in github.com/fikin/nodemcu-firmware](/github.com/fikin/nodemcu-firmware/tree/benchmark)
+- [ccount in github.com/fikin/nodemcu-firmware](../../tree/ccount)
+- [benchmark in github.com/fikin/nodemcu-firmware](../../tree/benchmark)
 
 ## ccount
 
