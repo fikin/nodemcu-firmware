@@ -18,6 +18,8 @@ These changes are for people who :
 - want to compare c and lua timings without conversion to us
 - want to calculate elapsed time without needing to debounce the 31-bit tmr.now()
 
+*This branch can be merged on top of nodemcu dev branch.*
+
 ## benchmark
 
 This is a branch containing a module called "benchmark" (c-module, lua bindings, module documentation).
@@ -33,6 +35,8 @@ This module is for people who:
 - want to run same performance test on various hardware and compare results
 - want to compare results against other people performing similar tests
 - want to benchmark own functionality and are looking for ready infrastructure code to start with
+
+*This branch can be merged on top of nodemcu dev branch.*
 
 ## Pulling a branch into own git branch
 
