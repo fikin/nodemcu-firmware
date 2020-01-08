@@ -2,23 +2,7 @@
 
 Most notable branches to mention:
 
-- [ccount in github.com/fikin/nodemcu-firmware](../../tree/ccount)
 - [benchmark in github.com/fikin/nodemcu-firmware](../../tree/benchmark)
-
-## ccount
-
-This branch adds a new method to tmr package : `tmr.ccount()` which returns current CPU ticks (CCOUNT register).
-
-And defines a C-macro in platform.h : `CCOUNT_REG` which returns same register value.
-
-These changes are for people who :
-
-- like to work with CPU ticks rather than us (tmr.now)
-- need some ns precision rather than us
-- want to compare c and lua timings without conversion to us
-- want to calculate elapsed time without needing to debounce the 31-bit tmr.now()
-
-*This branch can be merged on top of nodemcu dev branch.*
 
 ## benchmark
 
