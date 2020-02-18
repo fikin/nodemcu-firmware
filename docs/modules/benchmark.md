@@ -10,7 +10,7 @@ All benchmarking internally is done using CPU ticks.
 
 By default every test is repeated 2000 times before its duration is calculated. But for CPU160 one would probably want to increase it in order to obtain more precise results.
 
-This module is thought to be useful mainly to other modules developers to understand better low level API timing aspects. And to provide with basis for implmenenting other custom benchmarking metrics.
+This module is thought to be useful mainly to other modules developers to understand better low level API timing aspects. And to provide with basis for implementing other custom benchmarking metrics.
 
 Supported are CPU80 and CPU160.
 
@@ -18,6 +18,8 @@ Typical usage is as following:
 
 ```lua
 print(benchmark.empty_call())
+print(string.format("Current CPU CCOUNT registry is %d",benchmark.ccount()))
+print(string.format("Benchmark Lua function called by C %d",benchmark.bench_lua_func(function() end)))
 print(benchmark.single_nop())
 print(benchmark.get_cpu_counts())
 print(benchmark.re_recurse())
@@ -64,25 +66,32 @@ This allows for calculation of elapsed time with microsecond precision. For exam
 
 Note the register is 32-bits and rolls over.
 
+## benchmark.empty_call()
+
+This is empty C-method, used to test overhead of Lua calling C functions.
+
 ### Syntax
 
-`benchmark.ccount()`
+`benchmark.empty_call()`
 
 ### Returns
 
-The current value of CCOUNT register.
+`nil`
 
 ### Example
 
 ```lua
-print ("benchmark.ccount() takes ", benchmark.ccount()-benchmark.ccount(), " CPU ticks to execute.")
+b = tmr.now()
+for i =1,1000 do benchmark.empty_call() end
+a = tmr.now()
+print( "Overhead calling C from lua is %d us", ((a-b)/1000) )
 ```
 
 ## benchmark.bench_lua_func()
 
-Benchmark the given lua function. 
+Benchmark the given lua function.
 
-Returned value includes lua's function logic + low-level code cost of running a lua function. In order obtian only function's logic time, one would have to offset the value with result for empty function:
+Returned value includes lua's function logic + low-level code cost of running a lua function. In order obtain only function's logic time, one would have to offset the value with result for empty function:
 
 ```lua
 print ("print AA takes ", benchmark.bench_lua_func(function() print("AA") end)-benchmark.bench_lua_func(function()end), " CPU ticks to execute.")

@@ -491,6 +491,10 @@ static int lbench_ccount(lua_State *L) {
   return 1;
 }
 
+static int lbench_call_empty(lua_State *L) {
+  return 0;
+}
+
 static int lbench_lua_func(lua_State *L) {
   // set up the new callback if present
   lua_pushvalue(L, 1);
@@ -505,6 +509,7 @@ static int lbench_lua_func(lua_State *L) {
 
 // Module function map
 LROT_BEGIN(benchmark)
+LROT_FUNCENTRY(call_empty, lbench_call_empty)
 LROT_FUNCENTRY(ccount, lbench_ccount)
 LROT_FUNCENTRY(bench_lua_func, lbench_lua_func)
 LROT_FUNCENTRY(print_timer_data, lbench_print_timer_data)
